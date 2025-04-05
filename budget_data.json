@@ -1,0 +1,20 @@
+{
+    "shatwik": {
+        "2025-04": {
+            "total_budget": 10000,
+            "category_budgets": {
+                "Healthcare": 100,
+                "Entertainment": 2000,
+                "Food Delivery": 0,
+                "Rent": 0,
+                "Subscriptions": 0,
+                "Groceries": 0,
+                "Travel": 0,
+                "Dining Out": 0,
+                "Transport": 0,
+                "Shopping": 0,
+                "Utilities": 0
+            }
+        }
+    }
+}

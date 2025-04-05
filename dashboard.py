@@ -14,6 +14,45 @@ from sklearn.linear_model import LinearRegression
 # --- PAGE CONFIG --- #
 st.set_page_config(page_title="AI Finance Assistant", layout="wide")
 
+# --- DARK THEME --- #
+st.markdown("""
+    <style>
+    /* Dark theme colors */
+    [data-testid="stSidebar"] {
+        background-color: #1E1E1E;
+    }
+    .stApp {
+        background-color: #121212;
+        color: #FFFFFF;
+    }
+    .stPlotlyChart, .stpyplot {
+        background-color: #1E1E1E !important;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+    .st-bx {
+        background-color: #1E1E1E;
+    }
+    .st-eb {
+        background-color: #2D2D2D;
+    }
+    div[data-testid="stMetricValue"] {
+        color: #6C63FF;
+    }
+    button[data-testid="baseButton-secondary"] {
+        background-color: #2D2D2D;
+        color: #FFFFFF;
+    }
+    div[data-testid="stMarkdownContainer"] {
+        color: #FFFFFF;
+    }
+    .stProgress > div > div {
+        background-color: #6C63FF;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # --- AUTHENTICATION --- #
 auth_flow()
 
@@ -144,8 +183,11 @@ for i, (spent, budget) in enumerate(zip(spent_amounts, budgets)):
 ax.legend(loc='upper right', frameon=False, fontsize=10)
 
 # Set background color
-ax.set_facecolor('#FFFFFF')
-fig.patch.set_facecolor('#FFFFFF')
+ax.set_facecolor('#1E1E1E')
+fig.patch.set_facecolor('#1E1E1E')
+ax.tick_params(colors='white')
+ax.xaxis.label.set_color('white')
+ax.yaxis.label.set_color('white')
 
 plt.tight_layout()
 st.pyplot(fig)

@@ -17,27 +17,8 @@ st.set_page_config(page_title="AI Finance Assistant", layout="wide")
 # --- AUTHENTICATION --- #
 auth_flow()
 
-# --- LOGIN SYSTEM --- #
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
-
-def check_login():
-    if "logged_in" not in st.session_state:
-        st.session_state.logged_in = False
-
-    if not st.session_state.logged_in:
-        st.title("🔐 Login to Continue")
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        if st.button("Login"):
-            if username == "shatwik" and hash_password(password) == hash_password("12903478"):
-                st.session_state.logged_in = True
-                st.success("Login successful!")
-            else:
-                st.error("Invalid credentials")
-        st.stop()
-
-check_login()
+# --- AUTHENTICATION --- #
+auth_flow()
 
 # --- LOADING SCREEN --- #
 with st.spinner("🧙‍♂️ Summoning your Gringotts vault... Please wait..."):

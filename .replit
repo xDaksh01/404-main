@@ -1,5 +1,4 @@
-
-modules = ["python-3.12"]
+modules = ["nodejs-20", "python-3.12"]
 run = "streamlit run dashboard.py --server.address 0.0.0.0"
 
 [nix]

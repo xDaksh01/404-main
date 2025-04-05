@@ -1,5 +1,22 @@
 import streamlit as st
-st.set_page_config(page_title="AI finance assistant", layout="wide")
+st.set_page_config(
+    page_title="AI Finance Assistant",
+    layout="centered",
+    initial_sidebar_state="collapsed",
+    menu_items={
+        'About': 'AI Finance Assistant - Track your expenses on the go!'
+    }
+)
+st.markdown("""
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        @media (max-width: 768px) {
+            .stApp { padding: 1rem !important; }
+            .st-emotion-cache-18ni7ap { min-width: auto !important; }
+            .st-emotion-cache-16idsys { padding: 1rem !important; }
+        }
+    </style>
+""", unsafe_allow_html=True)
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns

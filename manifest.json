@@ -1,0 +1,17 @@
+
+{
+    "name": "AI Finance Assistant",
+    "short_name": "Finance AI",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#1c2333",
+    "theme_color": "#1c2333",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "https://replit.com/public/images/favicon.ico",
+            "sizes": "64x64",
+            "type": "image/x-icon"
+        }
+    ]
+}

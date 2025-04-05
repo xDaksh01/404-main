@@ -1,5 +1,6 @@
+
 modules = ["python-3.12"]
-run = "python app.py"
+run = "streamlit run dashboard.py --server.address 0.0.0.0"
 
 [nix]
 channel = "stable-24_05"

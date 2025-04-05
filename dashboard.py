@@ -19,10 +19,26 @@ from razorpay_realtime import start_realtime_tracking  # ⬅ NEW
 # --- AUTHENTICATION --- #
 auth_flow()
 
-# --- RAZORPAY TRACKER INIT (Background) --- #
-if "razorpay_tracker_started" not in st.session_state:
-    st.session_state.razorpay_tracker_started = True
-    threading.Thread(target=start_realtime_tracking, daemon=True).start()  # ⬅ NEW
+# --- RAZORPAY CONFIG --- #
+if "razorpay_configured" not in st.session_state:
+    st.session_state.razorpay_configured = False
+
+if st.session_state.logged_in and not st.session_state.razorpay_configured:
+    st.title("🔑 Configure Razorpay")
+    key = st.text_input("Enter Razorpay API Key")
+    secret = st.text_input("Enter Razorpay Secret", type="password")
+    if st.button("Save Razorpay Configuration"):
+        if key and secret:
+            st.session_state.razorpay_key = key
+            st.session_state.razorpay_secret = secret
+            st.session_state.razorpay_configured = True
+            # Start the tracker
+            threading.Thread(target=start_realtime_tracking, daemon=True).start()
+            st.success("✅ Razorpay configured successfully!")
+            st.rerun()
+        else:
+            st.error("Please enter both API key and secret")
+    st.stop()
 
 # --- LOGIN SYSTEM --- #
 def hash_password(password):

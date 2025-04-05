@@ -4,10 +4,9 @@ import pandas as pd
 import time
 from datetime import datetime
 
-user_key = st.text_input("Enter Razorpay API Key")
-user_secret = st.text_input("Enter Razorpay Secret", type="password")
-
 def start_realtime_tracking():
+    user_key = st.session_state.razorpay_key
+    user_secret = st.session_state.razorpay_secret
     seen_ids = set()
     while True:
         try:

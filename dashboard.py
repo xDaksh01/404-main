@@ -1,73 +1,67 @@
 import streamlit as st
+st.set_page_config(page_title="AI finance assistant", layout="wide")
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from chatbot import chat_with_bot
 from nudges import get_gamified_nudges, get_category_warnings
 import hashlib
-import os
 from auth import auth_flow
 import time
 import numpy as np
 from sklearn.linear_model import LinearRegression
+import threading
+from razorpay_realtime import start_realtime_tracking  # ⬅ NEW
 
 # --- PAGE CONFIG --- #
-st.set_page_config(page_title="AI Finance Assistant", layout="wide")
-
-# --- DARK THEME --- #
-st.markdown("""
-    <style>
-    /* Dark theme colors */
-    [data-testid="stSidebar"] {
-        background-color: #1E1E1E;
-    }
-    .stApp {
-        background-color: #121212;
-        color: #FFFFFF;
-    }
-    .stPlotlyChart, .stpyplot {
-        background-color: #1E1E1E !important;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-    }
-    .st-bx {
-        background-color: #1E1E1E;
-    }
-    .st-eb {
-        background-color: #2D2D2D;
-    }
-    div[data-testid="stMetricValue"] {
-        color: #6C63FF;
-    }
-    button[data-testid="baseButton-secondary"] {
-        background-color: #2D2D2D;
-        color: #FFFFFF;
-    }
-    div[data-testid="stMarkdownContainer"] {
-        color: #FFFFFF;
-    }
-    .stProgress > div > div {
-        background-color: #6C63FF;
-    }
-    </style>
-""", unsafe_allow_html=True)
+#st.set_page_config(page_title="AI Finance Assistant", layout="wide")
 
 # --- AUTHENTICATION --- #
 auth_flow()
 
-# --- AUTHENTICATION --- #
-auth_flow()
+# --- RAZORPAY TRACKER INIT (Background) --- #
+if "razorpay_tracker_started" not in st.session_state:
+    st.session_state.razorpay_tracker_started = True
+    threading.Thread(target=start_realtime_tracking, daemon=True).start()  # ⬅ NEW
+
+# --- LOGIN SYSTEM --- #
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def check_login():
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
+
+    if not st.session_state.logged_in:
+        st.title("🔐 Login to Continue")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        if st.button("Login"):
+            if username == "shatwik" and hash_password(password) == hash_password("12903478"):
+                st.session_state.logged_in = True
+                st.success("Login successful!")
+            else:
+                st.error("Invalid credentials")
+        st.stop()
+
+check_login()
 
 # --- LOADING SCREEN --- #
-with st.spinner("🧙‍♂️ Summoning your Gringotts vault... Please wait..."):
+with st.spinner("🧙‍♂ Summoning your Gringotts vault... Please wait..."):
     time.sleep(2)
 
 # --- LOAD DATA --- #
 @st.cache_data
 def load_data():
-    df = pd.read_csv("mock_transactions_detailed.csv", parse_dates=["datetime"])
-    return df
+    df_local = pd.read_csv("mock_transactions_detailed.csv", parse_dates=["datetime"])
+    try:
+        df_rzp = pd.read_csv("razorpay_payments.csv", parse_dates=["datetime"])
+        df_rzp["type"] = "expense"
+        df_rzp["category"] = ""
+        df_combined = pd.concat([df_local, df_rzp], ignore_index=True)
+        return df_combined
+    except FileNotFoundError:
+        return df_local
 
 st.sidebar.subheader("📁 Upload Your Transactions (CSV)")
 uploaded_file = st.sidebar.file_uploader("Choose a CSV file", type="csv")
@@ -84,6 +78,23 @@ if not expected_cols.issubset(df.columns):
     st.error("❌ Uploaded file is missing required columns. Using default dataset.")
     df = load_data()
 
+# --- OPTIONAL TAGGING UI --- #
+st.subheader("🏷 Tag Unknown Categories")
+untagged = df[df["category"] == ""].copy()
+if not untagged.empty:
+    for i, row in untagged.iterrows():
+        col1, col2, col3 = st.columns([2, 2, 4])
+        with col1:
+            st.write(f"🧾 {row['app']} - ₹{row['amount']}")
+        with col2:
+            category = st.selectbox(f"Category for {row['app']}", options=[
+                "Shopping", "Transport", "Grocery", "Bills", "Entertainment", "Other"
+            ], key=f"tag_{i}")
+        with col3:
+            if st.button("Save", key=f"save_{i}"):
+                df.at[i, "category"] = category
+                df.to_csv("mock_transactions_detailed.csv", index=False)
+                st.success("✅ Category tagged!")
 # --- TITLE --- #
 st.title("💰 AI Finance Assistant Dashboard")
 
@@ -108,7 +119,6 @@ category_budgets = {}
 for cat in df['category'].unique():
     category_budgets[cat] = st.sidebar.number_input(f"{cat} Budget (₹)", min_value=0, value=1000, step=100)
 
-# --- FILTERED DATA --- #
 filtered_df = df[
     (df["type"].isin(selected_type)) &
     (df["category"].isin(selected_category)) &
@@ -138,71 +148,11 @@ col2.metric("Remaining Budget", f"₹{budget - spent_this_month:,.0f}")
 
 # --- CATEGORY-WISE SPENT & REMAINING --- #
 st.subheader("🧾 Category-wise Budget Tracking")
-fig, ax = plt.subplots(figsize=(12, 7))
-categories = []
-spent_amounts = []
-budgets = []
-
 for cat in df['category'].unique():
     cat_spent = df_this_month[df_this_month['category'] == cat]['amount'].sum()
     cat_budget = category_budgets.get(cat, 0)
-    categories.append(cat)
-    spent_amounts.append(cat_spent)
-    budgets.append(cat_budget)
-
-y_pos = np.arange(len(categories))
-# Custom color palette
-budget_color = '#E3E3E3'
-spent_color = '#6C63FF'
-
-# Add background grid with custom style
-ax.grid(True, axis='x', linestyle='--', alpha=0.3, zorder=0)
-ax.set_axisbelow(True)
-
-# Plot bars with enhanced styling
-ax.barh(y_pos, budgets, alpha=0.5, color=budget_color, label='Budget', height=0.6, zorder=2)
-ax.barh(y_pos, spent_amounts, alpha=0.85, color=spent_color, label='Spent', height=0.6, zorder=3)
-
-# Customize axis and labels
-ax.set_yticks(y_pos)
-ax.set_yticklabels(categories, fontsize=10, fontweight='bold')
-ax.set_xlabel('Amount (₹)', fontsize=11, fontweight='bold')
-
-# Remove top and right spines
-ax.spines['top'].set_visible(False)
-ax.spines['right'].set_visible(False)
-
-# Add value labels on bars
-for i, (spent, budget) in enumerate(zip(spent_amounts, budgets)):
-    if spent > 0:
-        ax.text(spent, i, f' ₹{spent:,.0f}', va='center', fontsize=9)
-    if budget > 0:
-        ax.text(budget, i, f' ₹{budget:,.0f}', va='center', fontsize=9, alpha=0.6)
-
-# Enhance legend
-ax.legend(loc='upper right', frameon=False, fontsize=10)
-
-# Set background color
-ax.set_facecolor('#1E1E1E')
-fig.patch.set_facecolor('#1E1E1E')
-ax.tick_params(colors='white')
-ax.xaxis.label.set_color('white')
-ax.yaxis.label.set_color('white')
-
-plt.tight_layout()
-st.pyplot(fig)
-
-# Add custom CSS for the container
-st.markdown("""
-    <style>
-    .stPlotlyChart, .stpyplot {
-        background-color: white;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    </style>
-""", unsafe_allow_html=True)
+    cat_remaining = cat_budget - cat_spent
+    st.write(f"{cat}: Spent ₹{cat_spent:.0f} / ₹{cat_budget} | Remaining: ₹{cat_remaining:.0f}")
 
 # --- EXPENSE FORECASTING --- #
 st.subheader("📉 Expense Forecasting")
@@ -245,7 +195,7 @@ for cat in df['category'].unique():
 
 for cat, forecast in future_forecasts.items():
     cat_budget = category_budgets.get(cat, 0)
-    forecast_msg = f"📌 **{cat}**: Forecasted ₹{forecast:.0f} / Budget ₹{cat_budget}"
+    forecast_msg = f"📌 *{cat}*: Forecasted ₹{forecast:.0f} / Budget ₹{cat_budget}"
     if forecast > cat_budget:
         st.warning(f"🚨 {forecast_msg} — Likely to overspend!")
     else:
@@ -277,7 +227,7 @@ for badge in badges:
     st.success(badge)
 
 # --- CATEGORY BUDGET WARNINGS --- #
-st.subheader("⚠️ Category Budget Warnings")
+st.subheader("⚠ Category Budget Warnings")
 category_warnings = get_category_warnings(df_this_month, category_budgets)
 for warning in category_warnings:
     st.warning(warning)
@@ -328,11 +278,11 @@ with st.expander("🛠 Optional Enhancements You Can Add"):
     st.markdown("""
     | Feature | Description |
     |--------|-------------|
-    | 🔐 **Login System** | Secure access with username/password using hashed passwords |
-    | 📥 **CSV Upload** | Upload your **own bank statements** in `.csv` format and view custom insights |
-    | 🧠 **Smarter Chatbot** | Use **OpenAI/GPT** to answer complex queries like "What were my top 3 unnecessary expenses last month?" |
-    | 🎯 **Budget Goals** | Set your own **monthly budget** and track progress visually |
-    | 🏆 **Gamified Nudges** | Earn fun **badges/achievements** when you hit savings goals |
-    | 📤 **Export Reports** | Export your data and insights to **PDF or Excel** format |
+    | 🔐 *Login System* | Secure access with username/password using hashed passwords |
+    | 📥 *CSV Upload* | Upload your *own bank statements* in .csv format and view custom insights |
+    | 🧠 *Smarter Chatbot* | Use *OpenAI/GPT* to answer complex queries like "What were my top 3 unnecessary expenses last month?" |
+    | 🎯 *Budget Goals* | Set your own *monthly budget* and track progress visually |
+    | 🏆 *Gamified Nudges* | Earn fun *badges/achievements* when you hit savings goals |
+    | 📤 *Export Reports* | Export your data and insights to *PDF or Excel* format |
     """)
     st.info("💡 Let me know which one you want to build next and I’ll guide you step by step!")

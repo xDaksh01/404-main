@@ -99,11 +99,28 @@ col2.metric("Remaining Budget", f"₹{budget - spent_this_month:,.0f}")
 
 # --- CATEGORY-WISE SPENT & REMAINING --- #
 st.subheader("🧾 Category-wise Budget Tracking")
+fig, ax = plt.subplots(figsize=(10, 6))
+categories = []
+spent_amounts = []
+budgets = []
+
 for cat in df['category'].unique():
     cat_spent = df_this_month[df_this_month['category'] == cat]['amount'].sum()
     cat_budget = category_budgets.get(cat, 0)
-    cat_remaining = cat_budget - cat_spent
-    st.write(f"**{cat}**: Spent ₹{cat_spent:.0f} / ₹{cat_budget} | Remaining: ₹{cat_remaining:.0f}")
+    categories.append(cat)
+    spent_amounts.append(cat_spent)
+    budgets.append(cat_budget)
+
+y_pos = np.arange(len(categories))
+ax.barh(y_pos, budgets, alpha=0.3, color='gray', label='Budget')
+ax.barh(y_pos, spent_amounts, alpha=0.7, color='blue', label='Spent')
+ax.set_yticks(y_pos)
+ax.set_yticklabels(categories)
+ax.set_xlabel('Amount (₹)')
+ax.legend()
+
+plt.tight_layout()
+st.pyplot(fig)
 
 # --- EXPENSE FORECASTING --- #
 st.subheader("📉 Expense Forecasting")

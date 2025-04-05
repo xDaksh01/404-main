@@ -99,7 +99,7 @@ col2.metric("Remaining Budget", f"₹{budget - spent_this_month:,.0f}")
 
 # --- CATEGORY-WISE SPENT & REMAINING --- #
 st.subheader("🧾 Category-wise Budget Tracking")
-fig, ax = plt.subplots(figsize=(10, 6))
+fig, ax = plt.subplots(figsize=(12, 7))
 categories = []
 spent_amounts = []
 budgets = []
@@ -112,15 +112,55 @@ for cat in df['category'].unique():
     budgets.append(cat_budget)
 
 y_pos = np.arange(len(categories))
-ax.barh(y_pos, budgets, alpha=0.3, color='gray', label='Budget')
-ax.barh(y_pos, spent_amounts, alpha=0.7, color='blue', label='Spent')
+# Custom color palette
+budget_color = '#E3E3E3'
+spent_color = '#6C63FF'
+
+# Add background grid with custom style
+ax.grid(True, axis='x', linestyle='--', alpha=0.3, zorder=0)
+ax.set_axisbelow(True)
+
+# Plot bars with enhanced styling
+ax.barh(y_pos, budgets, alpha=0.5, color=budget_color, label='Budget', height=0.6, zorder=2)
+ax.barh(y_pos, spent_amounts, alpha=0.85, color=spent_color, label='Spent', height=0.6, zorder=3)
+
+# Customize axis and labels
 ax.set_yticks(y_pos)
-ax.set_yticklabels(categories)
-ax.set_xlabel('Amount (₹)')
-ax.legend()
+ax.set_yticklabels(categories, fontsize=10, fontweight='bold')
+ax.set_xlabel('Amount (₹)', fontsize=11, fontweight='bold')
+
+# Remove top and right spines
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+
+# Add value labels on bars
+for i, (spent, budget) in enumerate(zip(spent_amounts, budgets)):
+    if spent > 0:
+        ax.text(spent, i, f' ₹{spent:,.0f}', va='center', fontsize=9)
+    if budget > 0:
+        ax.text(budget, i, f' ₹{budget:,.0f}', va='center', fontsize=9, alpha=0.6)
+
+# Enhance legend
+ax.legend(loc='upper right', frameon=False, fontsize=10)
+
+# Set background color
+ax.set_facecolor('#FFFFFF')
+fig.patch.set_facecolor('#FFFFFF')
 
 plt.tight_layout()
 st.pyplot(fig)
+
+# Add custom CSS for the container
+st.markdown("""
+    <style>
+    .stPlotlyChart, .stpyplot {
+        background-color: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # --- EXPENSE FORECASTING --- #
 st.subheader("📉 Expense Forecasting")
